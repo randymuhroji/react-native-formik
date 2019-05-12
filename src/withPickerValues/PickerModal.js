@@ -22,7 +22,7 @@ class PickerModal extends PureComponent<PropsType> {
   };
 
   renderPicker = () => {
-    const { placeholder, value } = this.props;
+    const { placeholder, value, enabled = true } = this.props;
     if (!this.props.values || !this.props.values.length) return null;
     const values = [...this.props.values];
     if (Platform.OS === "ios") {
@@ -36,6 +36,7 @@ class PickerModal extends PureComponent<PropsType> {
         onValueChange={this.onValueChange}
         selectedValue={value}
         prompt={placeholder}
+        enabled={enabled}
       >
         {values.map(item => (
           <Picker.Item key={item.value} {...item} />
