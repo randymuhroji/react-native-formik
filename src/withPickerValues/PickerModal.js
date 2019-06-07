@@ -29,7 +29,7 @@ class PickerModal extends PureComponent<PropsType> {
       values.unshift({ value: "", label: placeholder || "" });
     } else {
       // Fix for issue: https://github.com/facebook/react-native/issues/15556
-      values.unshift({ value: "", label: "" });
+      values.unshift({ value: "", label: placeholder || "" });
     }
     const picker = (
       <Picker
