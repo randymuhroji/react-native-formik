@@ -22,10 +22,10 @@ class PickerModal extends PureComponent<PropsType> {
   };
 
   renderPicker = () => {
-    const { placeholder, value, enabled = true } = this.props;
+    const { placeholder, value, activePlaceholdere = false, enabled = true } = this.props;
     if (!this.props.values || !this.props.values.length) return null;
     const values = [...this.props.values];
-    if (Platform.OS === "ios") {
+    if (Platform.OS === "ios" || activePlaceholdere) {
       values.unshift({ value: "", label: placeholder || "" });
     } else {
       // Fix for issue: https://github.com/facebook/react-native/issues/15556
