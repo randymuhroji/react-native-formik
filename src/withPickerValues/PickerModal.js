@@ -1,116 +1,95 @@
 // @flow
-
 import React, { PureComponent } from "react";
-import { Easing, Keyboard } from "react-native";
-import Modal from "react-native-modalbox";
-import RootSiblings from "react-native-root-siblings";
+import { View, Platform, Picker, Button } from "react-native";
+
+import KeyboardModal from "./KeyboardModal";
+import DisableKeyboard from "./DisableKeyboard";
 
 type PropsType = {
-  style: Object,
-  easingAnimation: () => void,
-  children: any
+  values: Array<{ label: string, value: string }>
 };
 
-const renderModal = (props: PropsType, open: ?boolean) => (
-  <Modal
-    backdrop={false}
-    position="bottom"
-    isOpen={open}
-    style={[
-      { height: 216, backgroundColor: "rgb(200, 203, 211)" },
-      props.style
-    ]}
-    easing={props.easingAnimation}
-  >
-    {props.children}
-  </Modal>
-);
+class PickerModal extends PureComponent<PropsType> {
+  pickerModal: ?KeyboardModal;
 
-let keyboardModalInstance = null;
-let displayedKeyboardComponent = null;
-let keyboardModalCount = 0;
-let keyboardDidShowListener = null;
-let currentProps;
-
-const updateKeyboardModalComponent = (props: PropsType, open: ?boolean) => {
-  if (open) currentProps = props;
-  if (keyboardModalInstance)
-    keyboardModalInstance.update(renderModal(props, open));
-};
-
-const open = (keyboardComponent: any) => {
-  if (displayedKeyboardComponent) displayedKeyboardComponent.displayed = false;
-
-  displayedKeyboardComponent = keyboardComponent;
-  displayedKeyboardComponent.displayed = true;
-
-  updateKeyboardModalComponent(keyboardComponent.props, true);
-};
-
-const keyboardDidShow = () => updateKeyboardModalComponent(currentProps, false);
-
-const createKeyboardModalComponent = (props: PropsType) => {
-  keyboardModalCount += 1;
-
-  if (keyboardModalCount > 1) return;
-
-  currentProps = props;
-
-  keyboardModalInstance = new RootSiblings(renderModal(props));
-  keyboardDidShowListener = Keyboard.addListener(
-    "keyboardWillShow",
-    keyboardDidShow
-  );
-};
-
-const removeKeyboardModalComponent = () => {
-  keyboardModalCount -= 1;
-
-  if (keyboardModalCount === 0) {
-    if (keyboardDidShowListener) keyboardDidShowListener.remove();
-    if (keyboardModalInstance) keyboardModalInstance.destroy();
-  }
-};
-
-export default class KeyboardModal extends PureComponent {
-  static dismiss() {
-    if (keyboardModalCount > 0) {
-      updateKeyboardModalComponent(currentProps, false);
-    }
-  }
-
-  static defaultProps = {
-    easingAnimation: Easing.ease
+  openPicker = () => {
+    if (this.pickerModal) this.pickerModal.open();
   };
 
-  componentWillMount() {
-    createKeyboardModalComponent(this.props);
-  }
+  closePicker = () => {
+    if (this.pickerModal) this.pickerModal.close();
+  };
 
-  componentWillReceiveProps(nextProps: PropsType) {
-    if (this.displayed) {
-      updateKeyboardModalComponent(nextProps);
+  onValueChange = (value: any) => {
+    if (this.props.onChangeText) this.props.onChangeText(value);
+    if (this.props.onSubmitEditing) this.props.onSubmitEditing();
+  };
+
+  renderPicker = () => {
+    const {
+      placeholder,
+      value,
+      activePlaceholder = false,
+      enabled = true
+    } = this.props;
+    if (!this.props.values || !this.props.values.length) return null;
+    const values = [...this.props.values];
+    if (Platform.OS === "ios" || activePlaceholder) {
+      values.unshift({ value: "", label: placeholder || "" });
+    } else {
+      // Fix for issue: https://github.com/facebook/react-native/issues/15556
+      values.unshift({ value: "", label: "" });
     }
-  }
+    const picker = (
+      <Picker
+        onValueChange={this.onValueChange}
+        selectedValue={value}
+        prompt={placeholder}
+        enabled={enabled}
+      >
+        {values.map(item => (
+          <Picker.Item key={item.value} {...item} />
+        ))}
+      </Picker>
+    );
 
-  componentWillUnmount() {
-    removeKeyboardModalComponent();
-  }
-
-  displayed: boolean = false;
-
-  open() {
-    this.displayed = true;
-    Keyboard.dismiss();
-    open(this);
-  }
-
-  close() {
-    this.displayed = false;
-    updateKeyboardModalComponent(this.props, false);
-  }
+    return Platform.OS === "ios" ? (
+      <KeyboardModal
+        ref={ref => {
+          this.pickerModal = ref;
+        }}
+      >
+        <View style={{ alignItems: "flex-end", marginRight: 12 }}>
+          <Button title={"Done"} onPress={this.closePicker} />
+        </View>
+        {picker}
+      </KeyboardModal>
+    ) : (
+      <View
+        style={{
+          opacity: 0,
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          right: 0,
+          left: 0
+        }}
+      >
+        {picker}
+      </View>
+    );
+  };
 
   render() {
-    return null;
+    return (
+      <View>
+        <DisableKeyboard onPress={this.openPicker}>
+          {this.props.children}
+        </DisableKeyboard>
+        {this.renderPicker()}
+      </View>
+    );
   }
 }
+
+export default PickerModal;
